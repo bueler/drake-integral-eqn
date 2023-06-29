@@ -17,3 +17,8 @@ Inserting this into the weak form and using $v(x)=\phi_i(x)$ we get an entry of 
 Also
   $$b_i = \int_0^1 f(x) \phi_i(x) dx$$
 FIXME continue
+
+FIXME example options to compare
+
+        python3 fredholm.py -mat_type dense -ksp_type preonly -pc_type lu
+        python3 fredholm.py -mat_type aij -ksp_type gmres -ksp_converged_reason -pc_type jacobi
