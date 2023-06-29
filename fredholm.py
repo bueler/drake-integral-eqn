@@ -23,16 +23,19 @@ def fredholm(N):
     A = np.zeros((N+1,N+1))
     phij = Function(V)
     hx = 1.0 / N
+    Y = Constant(0.0)
+    Kj = -0.5 * (x + 1) * exp(- x * Y)
     for j, yj in enumerate(mesh.coordinates.dat.data):
         phij.dat.data[:] = 0.0
         phij.dat.data[j] = 1.0
-        K = -0.5 * (x + 1) * exp(- x * yj)  # how to substitute value for y in UFL for K(x,y)?
-        # Kj approximates  int_0^1 K(x,y) phi_j(y) dy:
+        Y.assign(yj)
         if (j == 0) or (j == N):
-            Kj = Function(V).interpolate(0.5 * hx * K)
+            c = 0.5 * hx
         else:
-            Kj = Function(V).interpolate(hx * K)
-        A[:, j] = assemble(phij * v * dx + Kj * v * dx).dat.data
+            c = hx
+        # c * Kj approximates  int_0^1 K(x,y) phi_j(y) dy:
+        A[:, j] = assemble(phij * v * dx +
+                           c * Kj * v * dx).dat.data
     # solve A u = b
     u = Function(V)
     u.dat.data[:] = np.linalg.solve(A, b)
@@ -40,6 +43,6 @@ def fredholm(N):
     return errornorm(u_exact, u, 'L2')
 
 if __name__ == '__main__':
-    for N in [2,4,8,16,32,64]:
+    for N in [8,16,32,64,128,256]:
         e = fredholm(N=N)
         print('N=%3d: hx = %.6f,  error=%.3g' % (N, 1.0/N, e))
