@@ -16,13 +16,13 @@ def solve(N, K=None, f=None):
     phij = Function(V)
     hx = 1.0 / N
     Y = Constant(0.0)
-    for j, yj in enumerate(mesh.coordinates.dat.data):
+    for j, xj in enumerate(mesh.coordinates.dat.data):
         phij.dat.data[:] = 0.0
         phij.dat.data[j] = 1.0
         # note  c * K(x,Y) approximates  int_0^1 K(x,y) phi_j(y) dy
         if (j == 0) or (j == N):  c = 0.5 * hx
         else:                     c = hx
-        Y.assign(yj)
+        Y.assign(xj)
         A[:, j] = assemble(phij * v * dx +
                            c * K(x,Y) * v * dx).dat.data
     u = Function(V)
@@ -39,13 +39,13 @@ if __name__ == '__main__':
     def uexact(x):
         return exp(-x)
 
+    import sys
     import time
     import numpy as np
-    REFINES = 12
-    for N in 2**(3 + np.arange(REFINES)):
-        tic = time.time()
-        V, x, u = solve(N=N, K=K, f=f)
-        toc = time.time()
-        uex = Function(V).interpolate(uexact(x))
-        e = errornorm(uex, u, 'L2')
-        print('  N = %5d: error = %9.3e [%6.1f s]' % (N, e, toc-tic))
+    N = int(sys.argv[1])
+    tic = time.time()
+    V, x, u = solve(N=N, K=K, f=f)
+    toc = time.time()
+    uex = Function(V).interpolate(uexact(x))
+    e = errornorm(uex, u, 'L2')
+    print('N = %d: error = %9.3e [%6.1f s]' % (N, e, toc-tic))
