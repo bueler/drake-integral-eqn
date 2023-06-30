@@ -36,15 +36,15 @@ The code we have in mind is this:
 
         phij = Function(V)
         Y = Constant(0.0)
-        for j, yj in enumerate(V.mesh().coordinates.dat.data):
+        for j, xj in enumerate(V.mesh().coordinates.dat.data):
             phij.dat.data[:] = 0.0
             phij.dat.data[j] = 1.0
-            Y.assign(yj)
+            Y.assign(xj)
             Kmat.setValues(range(V.dim()),[j,],
                            assemble(c * K(x,Y) * v * dx).dat.data)
 
-Here the constant `c` is the mesh spacing in 1D, and generally it is the volume of a cell around $x_j$; we are using a kind of weighted midpoint rule:
-  $$\tilde K_j(x) = h_x K(x,x_j) \approx \int_0^1 K(x,y) \phi_j(y) dy$$
+Here the constant `c` is the mesh spacing in 1D, and generally it is the volume of a cell centered at $x_j$, _a la_ finite volumes.  That is, we are using a kind of weighted midpoint rule:
+  $$\tilde K_j(x) = h_x K(x,x_j)$$
 (This formula is modified at the boundary.)
 
 Then the system matrix is set up and solved, here with KSP as we do in `fredholm.py`:
@@ -61,29 +61,35 @@ Then the system matrix is set up and solved, here with KSP as we do in `fredholm
 
 ## demo solvers
 
-  * `fredholm.py`: Implements the above approach.
+  * `fredholm.py`: Implements the above approach, including the KSP solver usage.
 
   * `fredholm_numpy.py`:  In this naive approach we turn everything into [numpy](https://numpy.org/) arrays and call `numpy.linalg.solve()` on it.  This approach is actually quite effective because everything is dense.  However, it is inflexible with respect to the solver.
 
 ## running the demos
 
 > **Warning**  
-> These demos should be run with a process/system monitor on top so the high-resolution cases can be killed.  That is, kill processes if you either don't want to wait for completion or you are running out of memory.
+> At high resolutions these demos should be run with a process/system monitor on top so bad cases can be killed.  That is, kill processes if you either don't want to wait for completion or you are running out of memory.  Also, reported timings include cache times; re-run for "real" solve times.
 
-Here is the naive numpy approach, which actually has good performance because the matrices are dense.  Clearly it is an $O(N^3)$ solver:
+Here is the naive numpy approach with $N=1024$ elements, which actually has good performance because the matrices are dense.  Clearly it is an $O(N^3)$ solver:
 
-        python3 fredholm_numpy.py
+        python3 fredholm_numpy.py 1024
 
 Once we use PETSc KSP we have a chance to compare solvers.  First some $O(N^3)$ direct versions:
 
-        python3 fredholm.py -ksp_view   # note ILU is a direct solver for dense Mats!
+        python3 fredholm.py 1024 -ksp_view
 
-        python3 fredholm.py -mat_type dense -ksp_type preonly -pc_type lu  -pc_factor_mat_ordering_type natural
+(This is direct because ILU is a direct solver for dense matrices!)
 
-The following iterative method should be $O(N^2)$ if the number of iterations is mesh independent, which would appear to be true:
+If we deliberately want LU:[^2]
 
-        python3 fredholm.py -mat_type aij -ksp_type gmres -ksp_converged_reason -pc_type jacobi -ksp_rtol 1.0e-9
+        python3 fredholm.py 1024 -mat_type dense -ksp_type preonly -pc_type lu -pc_factor_mat_ordering_type natural
 
-This is headed toward being fastest at super high resolutions, but in fact the numpy method is still faster at the _tested_ resolutions.
+The following iterative method should be $O(ZN^2)$ if the number of iterations $Z$ is mesh independent, which indeed appears to be true!:
+
+        python3 fredholm.py 1024 -mat_type aij -ksp_type gmres -ksp_converged_reason -pc_type jacobi -ksp_rtol 1.0e-9
+
+This is perhaps headed toward being fastest at super high resolutions, but in fact the numpy method is still faster at the _tested_ resolutions; e.g. compare with $N=8192$.
 
 [^1]:  This [Fenics example](https://fenicsproject.org/qa/9537/assembling-integral-operators/) takes essentially our approach here.  An [old post by Anders Logg](https://answers.launchpad.net/dolfin/+question/141904) suggests a more direct approach is not possible.
+
+[^2]:  `-pc_factor_mat_ordering_type natural` also avoids an apparent PETSc bug with the default `nd` ordering.
