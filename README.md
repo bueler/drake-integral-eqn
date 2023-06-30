@@ -4,6 +4,11 @@ The [Firedrake](https://www.firedrakeproject.org) finite element library is usua
 
 For now we consider only linear integral equations.  The basic strategy is to use Firedrake tools to assemble as many parts of the discrete linear system as possible.  The matrix corresponding to the integral operator would seem not to permit a single `assemble()` command.  Instead it is assembled column-by-column in a somewhat "by-hand" manner.  There may well be a better approach.
 
+TODO:
+
+  * 2D example
+  * what would Brandt & Lubrecht (1990) do?
+
 ## example
 
 A well-understood type of linear integral equation is a Fredholm "second kind" equation:
@@ -61,6 +66,17 @@ Then the system matrix is set up and solved, here with KSP as we do in `fredholm
 
 ## demo solvers
 
+Consider this non-symmetric kernel case:
+
+  $$\begin{align*}
+    K(x,y) &= - 0.5 (x + 1) e^{-x y} \\
+    f(x) &= e^{-x} - 0.5 + 0.5 e^{-(x+1)}
+    \end{align*}$$
+
+The exact solution is $u(x)=e^{-x}$.
+
+We have two solvers:
+
   * `fredholm.py`: Implements the above approach, including the KSP solver usage.
 
   * `fredholm_numpy.py`:  In this naive approach we turn everything into [numpy](https://numpy.org/) arrays and call `numpy.linalg.solve()` on it.  This approach is actually quite effective because everything is dense.  However, it is inflexible with respect to the solver.
@@ -84,11 +100,12 @@ If we deliberately want LU:[^2]
 
         python3 fredholm.py 1024 -mat_type dense -ksp_type preonly -pc_type lu -pc_factor_mat_ordering_type natural
 
-The following iterative method should be $O(ZN^2)$ if the number of iterations $Z$ is mesh independent, which indeed appears to be true!:
+The following iterative methods should be $O(ZN^2)$ if the number of iterations $Z$ is mesh independent, which indeed appears to be true!:
 
         python3 fredholm.py 1024 -mat_type aij -ksp_type gmres -ksp_converged_reason -pc_type jacobi -ksp_rtol 1.0e-9
+        python3 fredholm.py 1024 -mat_type aij -ksp_type bcgs -ksp_converged_reason -pc_type jacobi -ksp_rtol 1.0e-9
 
-This is perhaps headed toward being fastest at super high resolutions, but in fact the numpy method is still faster at the _tested_ resolutions; e.g. compare with $N=8192$.
+(Also `-pc_type kaczmarz` makes sense. :smile:)  These are perhaps headed toward being fastest at super high resolutions, but in fact the numpy method is still faster at the _tested_ resolutions; e.g. compare with $N=8192$.
 
 [^1]:  This [Fenics example](https://fenicsproject.org/qa/9537/assembling-integral-operators/) takes essentially our approach here.  An [old post by Anders Logg](https://answers.launchpad.net/dolfin/+question/141904) suggests a more direct approach is not possible.
 
