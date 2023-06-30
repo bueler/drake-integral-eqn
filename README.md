@@ -9,7 +9,7 @@ TODO:
   * 2D example
   * what would Brandt & Lubrecht (1990) do?
 
-## example
+## approach
 
 A well-understood type of linear integral equation is a Fredholm "second kind" equation:
   $$u(x) + \int_0^1 K(x,y) u(y) dy = f(x)$$
@@ -64,7 +64,7 @@ Then the system matrix is set up and solved, here with KSP as we do in `fredholm
             with b.dat.vec_ro as vb:
                 ksp.solve(vb, vu)
 
-## demo solvers
+## example
 
 Consider this non-symmetric kernel case:
 
@@ -75,13 +75,15 @@ Consider this non-symmetric kernel case:
 
 The exact solution is $u(x)=e^{-x}$.
 
+## solvers
+
 We have two solvers:
 
   * `fredholm.py`: Implements the above approach, including the KSP solver usage.
 
   * `fredholm_numpy.py`:  In this naive approach we turn everything into [numpy](https://numpy.org/) arrays and call `numpy.linalg.solve()` on it.  This approach is actually quite effective because everything is dense.  However, it is inflexible with respect to the solver.
 
-## running the demos
+## running
 
 > **Warning**  
 > At high resolutions these demos should be run with a process/system monitor on top so bad cases can be killed.  That is, kill processes if you either don't want to wait for completion or you are running out of memory.  Also, reported timings include cache times; re-run for "real" solve times.
